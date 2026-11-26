@@ -10,6 +10,19 @@ const fixturePageSize = 100;
 const maxFixturePages = 100;
 const analysisCache = new Map();
 
+function formatProviderDetail(value) {
+  if (typeof value === "string") return value.slice(0, 500);
+  if (value && typeof value === "object") {
+    const message = value.message || value.description || value.reason || value.error_description;
+    const code = value.code || value.errorCode;
+    if (typeof message === "string") {
+      return `${message}${typeof code === "string" || typeof code === "number" ? ` (code: ${code})` : ""}`;
+    }
+    return JSON.stringify(value).slice(0, 500);
+  }
+  return String(value).slice(0, 500);
+}
+
 function sendJson(response, status, value) {
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
@@ -35,7 +48,7 @@ async function goalApiRequest(pathname) {
   if (!response.ok) {
     const detail = body?.message || body?.error;
     const extra = body?.details || body?.issues || body?.errors;
-    const detailText = detail ? `: ${detail}` : "";
+    const detailText = detail ? `: ${formatProviderDetail(detail)}` : "";
     const extraText = extra ? ` Details: ${JSON.stringify(extra).slice(0, 500)}` : "";
     throw new Error(`GOAL API returned HTTP ${response.status}${detailText}${extraText}.`);
   }
