@@ -37,6 +37,23 @@ const getFixture = id => activeFixtures.find(fixture => fixture.id === id);
 const marketsFor = fixture => Array.isArray(fixture.markets) ? fixture.markets : [];
 const fixtureDisplayName = fixture => `${fixture.home.name} vs ${fixture.away.name}`;
 const recommendationLabel = () => "statistical lean";
+function formatApiError(value) {
+  if (typeof value === "string") return value.slice(0, 500);
+  if (Array.isArray(value)) return value.map(formatApiError).filter(Boolean).join("; ").slice(0, 500);
+  if (value && typeof value === "object") {
+    const message = value.message || value.description || value.reason || value.error_description;
+    const code = value.code || value.errorCode;
+    if (typeof message === "string") {
+      return `${message}${typeof code === "string" || typeof code === "number" ? ` (code: ${code})` : ""}`;
+    }
+    const nested = value.error || value.details || value.errors;
+    if (nested !== undefined) return formatApiError(nested);
+    return typeof code === "string" || typeof code === "number"
+      ? `API error code: ${code}`
+      : "The server returned structured error details.";
+  }
+  return value == null ? "" : String(value).slice(0, 500);
+}
 const getRecommendation = fixture => {
   const markets = marketsFor(fixture);
   const key = fixture.recommendation?.marketKey || fixture.recommendedMarketKey;
@@ -77,7 +94,7 @@ async function loadAvailableSports() {
   if (window.location.protocol === "file:") return;
   const response = await fetch("/api/sports", { headers: { Accept: "application/json" } });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || `Could not load configured sports (${response.status}).`);
+  if (!response.ok) throw new Error(formatApiError(payload.error) || `Could not load configured sports (${response.status}).`);
   if (!payload || !Array.isArray(payload.sports) || payload.sports.some(sport => typeof sport !== "string" || !sport.trim())) {
     throw new Error("The sports configuration response must contain a sports array.");
   }
@@ -180,7 +197,7 @@ async function loadProviderFixtures(dateFrom, daysAhead = state.daysAhead) {
   try {
     const response = await fetch(`/api/fixtures?from=${encodeURIComponent(dateFrom)}&to=${encodeURIComponent(dateTo)}`, { headers: { Accept: "application/json" } });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || `GOAL API request failed (${response.status}).`);
+    if (!response.ok) throw new Error(formatApiError(payload.error) || `GOAL API request failed (${response.status}).`);
     if (requestSequence !== fixtureRequestSequence) return;
     if (payload.errors !== undefined && (!Array.isArray(payload.errors) || payload.errors.some(item => !item?.sport || !item?.message))) {
       throw new Error("The API adapter returned an invalid product-error list.");
@@ -449,7 +466,7 @@ async function loadFixtureAnalysis(fixture) {
       headers: { Accept: "application/json" }
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || `GOAL API analysis request failed (${response.status}).`);
+    if (!response.ok) throw new Error(formatApiError(payload.error) || `GOAL API analysis request failed (${response.status}).`);
     if (!payload || !payload.analysis || typeof payload.analysis !== "object") {
       throw new Error("The GOAL API analysis response is missing its statistics.");
     }
