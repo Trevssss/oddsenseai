@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0f19">
+  <meta name="description" content="OddSense sports analytics — live fixtures, probability-led insights, and a smarter betting slip.">
+  <title>OddSense | Sports Analytics AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="OddSense home">
+        <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" fill="none" role="img" aria-label="OddSense Sports Analytics AI">
+          <defs>
+            <linearGradient id="emeraldGrad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#059669"/><stop offset="50%" stop-color="#10B981"/><stop offset="100%" stop-color="#34D399"/></linearGradient>
+            <linearGradient id="slateBox" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1E293B"/><stop offset="100%" stop-color="#0F172A"/></linearGradient>
+            <filter id="emeraldGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+          </defs>
+          <rect x="4" y="8" width="56" height="56" rx="14" fill="url(#slateBox)" stroke="#1E293B" stroke-width="1.5"/>
+          <rect x="5" y="9" width="54" height="54" rx="13" stroke="url(#emeraldGrad)" stroke-opacity=".35"/>
+          <circle cx="32" cy="36" r="16" stroke="#334155" stroke-width="3.5"/>
+          <path d="M19.5 46A16 16 0 1 1 46.5 29.5" stroke="url(#emeraldGrad)" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="m18 41 8-5 5 4 13-15" stroke="#34D399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#emeraldGlow)"/>
+          <circle cx="44" cy="25" r="3.5" fill="#10B981" stroke="#0B0F19" stroke-width="1.5"/>
+          <text x="74" y="45" font-family="'DM Sans',sans-serif" font-size="30" font-weight="800" letter-spacing="-.8"><tspan fill="#F8FAFC">Odd</tspan><tspan fill="url(#emeraldGrad)">Sense</tspan></text>
+          <text x="76" y="60" font-family="'DM Mono',monospace" font-size="9.5" font-weight="500" letter-spacing="2.4" fill="#64748B">SPORTS ANALYTICS AI</text>
+        </svg>
+      </a>
+      <nav class="sports-nav" id="sportsNav" aria-label="Filter by configured sport">
+        <button class="sport-tab active" type="button" data-sport="all" aria-pressed="true"><span class="tab-icon">◈</span> All Sports</button>
+        <button class="sport-tab" type="button" data-sport="football" aria-pressed="false"><span class="tab-icon">⚽</span> Football (Soccer)</button>
+      </nav>
+      <div class="topbar-actions">
+        <span class="live-pill" id="livePill"><i></i> CHECKING</span>
+        <button class="icon-button mobile-slip-trigger" type="button" id="mobileSlipTrigger" aria-label="Open betslip">▤ <b id="slipCountTop">0</b></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="welcome-row">
+      <div>
+        <p class="eyebrow"><span class="eyebrow-line"></span> ODDSENSE MATCHDAY DASHBOARD</p>
+        <h1>Good afternoon, <span>let’s find an edge.</span></h1>
+        <p class="welcome-copy">Your matchday dashboard, powered by probability. <span class="provider-status" id="providerStatus" role="status">Connecting to live data…</span></p>
+      </div>
+      <label class="date-picker">
+        <span class="calendar-icon">▦</span>
+        <span class="date-picker-text"><small>START DATE</small><strong id="selectedDateLabel">Today</strong></span>
+        <span class="chevron">⌄</span>
+        <input type="date" id="dateInput" aria-label="Choose first fixture date">
+      </label>
+      <div class="date-range-tabs" role="group" aria-label="Choose fixture date range">
+        <button class="active" type="button" data-days="1" aria-pressed="true">Today</button>
+        <button type="button" data-days="3" aria-pressed="false">3 days</button>
+        <button type="button" data-days="7" aria-pressed="false">7 days</button>
+        <button type="button" data-days="14" aria-pressed="false">14 days</button>
+      </div>
+    </section>
+
+    <section class="overview-grid" aria-label="Today's overview">
+      <article class="overview-card">
+        <div class="overview-icon icon-green">◉</div><div><span class="overview-label">MATCHES IN RANGE</span><strong id="matchCount">0</strong><small>Across 0 competitions</small></div>
+      </article>
+      <article class="overview-card">
+        <div class="overview-icon icon-red">⌁</div><div><span class="overview-label">LIVE RIGHT NOW</span><strong>0</strong><small><span class="text-live">● From live feed</span></small></div>
+      </article>
+      <article class="overview-card">
+        <div class="overview-icon icon-amber">✳</div><div><span class="overview-label">STATS-BASED LEAN</span><strong>—</strong><small>Open a match for team statistics</small></div>
+      </article>
+      <article class="overview-card ai-overview">
+        <div class="overview-icon icon-purple">✦</div><div><span class="overview-label">ODDSENSE ANALYST</span><strong class="online-label"><i></i> Waiting for data</strong><small>Historical team data, no guarantees</small></div>
+      </article>
+    </section>
+
+    <div class="dashboard-layout">
+      <section class="fixtures-column" aria-labelledby="fixturesTitle">
+        <div class="section-header">
+          <div><p class="eyebrow"><span class="eyebrow-line"></span> MATCHDAY CENTER</p><h2 id="fixturesTitle">Live & upcoming <span class="match-total">00 MATCHES</span></h2></div>
+          <div class="feed-tools">
+            <div class="feed-toggle" role="group" aria-label="Filter matches by status">
+              <button type="button" class="status-tab active" data-status="all" aria-pressed="true">All <span>00</span></button>
+              <button type="button" class="status-tab" data-status="live" aria-pressed="false"><i></i> Live <span>00</span></button>
+              <button type="button" class="status-tab" data-status="upcoming" aria-pressed="false">Upcoming <span>00</span></button>
+            </div>
+            <button type="button" class="icon-button sort-button" id="sortButton" aria-label="Sort matches">☷</button>
+          </div>
+        </div>
+        <div class="fixtures-list" id="fixturesList" aria-live="polite"></div>
+        <button class="load-more" type="button" id="loadMoreButton">Refresh selected date range <span>↻</span></button>
+        <aside class="responsible-note"><span>ⓘ</span><p><strong>Play responsibly.</strong> Odds and predictions are for informational purposes only. Betting involves risk; only wager what you can afford to lose.</p><a href="#responsible">Learn more</a></aside>
+      </section>
+
+      <aside class="betslip" id="betslip" aria-label="OddSense betslip">
+        <div class="betslip-heading">
+          <div><span class="slip-symbol">▤</span><h2>My Betslip <span class="slip-count" id="slipCount">0</span></h2></div>
+          <button type="button" class="clear-slip" id="clearSlip" aria-label="Clear betslip">Clear all</button>
+          <button type="button" class="close-slip" id="closeSlip" aria-label="Close betslip">×</button>
+        </div>
+        <div class="slip-empty" id="slipEmpty">
+          <div class="empty-graphic"><span>＋</span><i></i><b></b></div>
+          <strong>Your slip is waiting</strong>
+          <p>Choose Home Win, Draw, or Away Win on a match, then add your selection here.</p>
+          <span class="empty-tip">TIP: SELECT AN OUTCOME, THEN ADD IT</span>
+        </div>
+        <div class="slip-selections" id="slipSelections"></div>
+        <div class="slip-controls">
+          <div class="bookmaker-heading"><span>BOOKMAKER</span><span class="secure-mark">● MANUAL ENTRY</span></div>
+          <div class="bookmaker-tabs" role="group" aria-label="Select bookmaker">
+            <button class="bookmaker-tab active" type="button" data-bookmaker="SportyBet" aria-pressed="true">SportyBet</button>
+            <button class="bookmaker-tab" type="button" data-bookmaker="Bet9ja" aria-pressed="false">Bet9ja</button>
+            <button class="bookmaker-tab" type="button" data-bookmaker="MSport" aria-pressed="false">MSport</button>
+          </div>
+          <label class="stake-label" for="stakeInput">YOUR STAKE <span>₦ NGN</span></label>
+          <div class="stake-input-wrap"><span>₦</span><input id="stakeInput" type="number" min="0" step="100" placeholder="5,000" inputmode="decimal"></div>
+          <button type="button" class="generate-button" id="prepareSlip" disabled><span>▣</span> Prepare slip for betting app <span class="button-arrow">→</span></button>
+          <p class="bookmaker-disclaimer">Copy/share creates a manual-entry slip, not a bookmaker booking code. Enter each selection and stake in the selected app; the app calculates odds and payout.</p>
+        </div>
+        <div class="booking-result" id="bookingResult" hidden></div>
+      </aside>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="analystModal" hidden>
+    <section class="analyst-modal" role="dialog" aria-modal="true" aria-labelledby="analystTitle">
+      <div class="modal-top">
+        <div class="modal-brand"><span class="modal-spark">✦</span><div><p>ODDSENSE AI</p><h2 id="analystTitle">Match Analyst</h2></div></div>
+        <button type="button" class="modal-close" id="closeAnalyst" aria-label="Close analyst">×</button>
+      </div>
+      <div class="analyst-match" id="analystMatch"></div>
+      <div class="analyst-output" id="analystOutput"></div>
+      <form class="analyst-prompt" id="analystForm">
+        <label class="sr-only" for="analystQuestion">Ask OddSense a question</label>
+        <input id="analystQuestion" type="text" placeholder="Ask about this match or today's fixtures..." autocomplete="off">
+        <button type="submit" aria-label="Send question">↑</button>
+      </form>
+      <p class="analyst-disclaimer">Historical statistics can inform a lean but cannot guarantee a result or provide a calibrated win probability. Please bet responsibly.</p>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="mobile-backdrop" id="mobileBackdrop"></div>
+  <script src="script.js"></script>
+</body>
+</html>
