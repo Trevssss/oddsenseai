@@ -68,7 +68,7 @@ function getFixtureStatus(event) {
 }
 
 const leagueCountryRules = [
-  { pattern: /\b(?:english )?premier league\b|\b(?:efl )?championship\b|\bfa cup\b/i, country: "England" },
+  { pattern: /^(?:english|england) premier league$|^premier league$|\b(?:efl )?championship\b|\bfa cup\b/i, country: "England" },
   { pattern: /\b(?:la ?liga|primera division)\b/i, country: "Spain" },
   { pattern: /\bbundesliga\b/i, country: "Germany" },
   { pattern: /\bbrazilian serie a\b|\bbrasileirao\b|\bcampeonato brasileiro\b/i, country: "Brazil" },
@@ -85,9 +85,11 @@ const leagueCountryRules = [
 ];
 
 function getLeagueCountry(league, providerCountry) {
+  const providedCountry = String(providerCountry || "").trim();
+  if (providedCountry) return providedCountry;
   const normalizedLeague = String(league || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
   const knownCountry = leagueCountryRules.find(rule => rule.pattern.test(normalizedLeague))?.country;
-  return knownCountry || String(providerCountry || "").trim();
+  return knownCountry || "";
 }
 
 function normalizeFixture(event) {

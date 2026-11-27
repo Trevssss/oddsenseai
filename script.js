@@ -96,7 +96,7 @@ function renderCountryTabs() {
   const nav = document.querySelector("#countryNav");
   const countries = [...new Set([
     "England",
-    ...activeFixtures.map(fixture => String(fixture.country || "").trim()).filter(Boolean),
+    ...getDisplayableFixtures(activeFixtures).map(fixture => String(fixture.country || "").trim()).filter(Boolean),
     ...(state.country !== "all" ? [state.country] : [])
   ])].sort((a, b) => a === "England" ? -1 : b === "England" ? 1 : a.localeCompare(b));
   const options = [{ id: "all", label: "All countries" }, ...countries.map(country => ({ id: country, label: country }))];
@@ -104,8 +104,9 @@ function renderCountryTabs() {
 }
 
 function filterFixturesByCountry(fixtures) {
-  if (state.country === "all") return fixtures;
-  return fixtures.filter(fixture => String(fixture.country || "").trim().toLowerCase() === state.country.toLowerCase());
+  const eligible = getDisplayableFixtures(fixtures);
+  if (state.country === "all") return eligible;
+  return eligible.filter(fixture => String(fixture.country || "").trim().toLowerCase() === state.country.toLowerCase());
 }
 
 async function loadAvailableSports() {
@@ -133,7 +134,7 @@ function renderProviderStatus(message) {
 }
 
 function updateLivePill(connected, loading) {
-  const liveCount = activeFixtures.filter(fixture => fixture.status === "live").length;
+  const liveCount = getDisplayableFixtures(activeFixtures).filter(fixture => fixture.status === "live").length;
   const pill = document.querySelector("#livePill");
   pill.classList.toggle("has-live", liveCount > 0);
   pill.innerHTML = liveCount
@@ -254,9 +255,10 @@ async function loadProviderFixtures(dateFrom, daysAhead = state.daysAhead, prese
         state.selectedMarkets.set(pick.fixtureId, market);
       }
     });
+    const displayedFixtureCount = getDisplayableFixtures(activeFixtures).length;
     renderProviderStatus(errorSummary && activeFixtures.length === 0
       ? `LIVE DATA UNAVAILABLE · ${errorSummary}`
-      : `GOAL API · ${activeFixtures.length} fixtures · ${dateFrom} to ${dateTo}${errorSummary ? ` · ${errorSummary}` : ""} · predictions are not guaranteed`);
+      : `GOAL API · ${displayedFixtureCount} senior popular-league fixtures · ${dateFrom} to ${dateTo}${errorSummary ? ` · ${errorSummary}` : ""} · predictions are not guaranteed`);
     renderFixtures();
     renderSlip();
     document.querySelector("#bookingResult").hidden = true;
@@ -316,7 +318,7 @@ function renderFixtures() {
     return state.sortAscending ? dateA - dateB : dateB - dateA;
   });
   fixturesList.innerHTML = visible.length === 0
-    ? `<div class="no-fixtures">${escapeHtml(state.fixtureMessage || "No fixtures match the selected sport and date range.")}</div>`
+    ? `<div class="no-fixtures">${escapeHtml(state.fixtureMessage || "No senior fixtures from the prioritized leagues match the selected country and date range.")}</div>`
     : visible.map(fixture => {
     const markets = marketsFor(fixture);
     const selected = state.selectedMarkets.get(fixture.id) || null;
@@ -420,6 +422,25 @@ function normalizeLeagueName(league) {
   return String(league || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
 }
 
+const youthFixturePattern = /\b(?:u[\s-]?(?:1[0-9]|2[0-3])s?|under[\s-]?(?:1[0-9]|2[0-3])|youth|academy|reserves?|b[\s-]?team|team[\s-]?b|ii)\b/i;
+
+function isSeniorPopularFixture(fixture) {
+  const league = normalizeLeagueName(fixture.league);
+  const country = normalizeLeagueName(fixture.country).trim().toLowerCase();
+  const teams = `${fixture.home?.name || ""} ${fixture.away?.name || ""}`;
+  if (country === "bangladesh" || /\bbangladesh\b/i.test(`${league} ${teams}`)) return false;
+  if (youthFixturePattern.test(`${league} ${teams}`)) return false;
+  if ([fixture.home?.name, fixture.away?.name].some(name => /(?:^|\s)(?:b|ii)$/i.test(String(name || "").trim()))) return false;
+  if (!popularLeaguePatterns.some(pattern => pattern.test(league))) return false;
+  if (/\bpremier league\b/i.test(league) && country && country !== "england" &&
+      !/\b(?:english|england) premier league\b/i.test(league)) return false;
+  return true;
+}
+
+function getDisplayableFixtures(fixtures) {
+  return fixtures.filter(isSeniorPopularFixture);
+}
+
 function getLeaguePriority(fixture) {
   const league = normalizeLeagueName(fixture.league);
   const priority = popularLeaguePatterns.findIndex(pattern => pattern.test(league));
@@ -455,7 +476,7 @@ function normalizePastedText(value) {
 function findPastedFixtures(value) {
   const pastedText = ` ${normalizePastedText(value)} `;
   if (!pastedText.trim()) return [];
-  return sortFixturesByPopularity(activeFixtures.filter(fixture => {
+  return sortFixturesByPopularity(getDisplayableFixtures(activeFixtures).filter(fixture => {
     const home = normalizePastedText(fixture.home.name);
     const away = normalizePastedText(fixture.away.name);
     return home && away && pastedText.includes(` ${home} `) && pastedText.includes(` ${away} `);
