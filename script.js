@@ -378,6 +378,7 @@ const popularLeaguePatterns = [
   /\bchampions league\b/i,
   /\b(?:la ?liga|primera division)\b/i,
   /\bbundesliga\b/i,
+  /\b(?:brazilian serie a|brasileirao|campeonato brasileiro)\b/i,
   /\bserie a\b/i,
   /\bligue 1\b/i,
   /\beuropa league\b/i,
@@ -385,12 +386,20 @@ const popularLeaguePatterns = [
   /\b(?:efl )?championship\b/i,
   /\bfa cup\b/i,
   /\beredivisie\b/i,
+  /\bprimeira liga\b|\bportuguese league\b/i,
+  /\bturkish super lig\b|\bsuper lig\b/i,
+  /\bscottish premiership\b/i,
   /\b(?:major league soccer|mls)\b/i,
-  /\bsaudi pro league\b/i
+  /\bsaudi pro league\b/i,
+  /\bargentina primera\b/i
 ];
 
+function normalizeLeagueName(league) {
+  return String(league || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function getLeaguePriority(fixture) {
-  const league = String(fixture.league || "");
+  const league = normalizeLeagueName(fixture.league);
   const priority = popularLeaguePatterns.findIndex(pattern => pattern.test(league));
   return priority === -1 ? popularLeaguePatterns.length : priority;
 }

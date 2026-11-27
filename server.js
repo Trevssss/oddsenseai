@@ -67,6 +67,29 @@ function getFixtureStatus(event) {
   return "upcoming";
 }
 
+const leagueCountryRules = [
+  { pattern: /\b(?:english )?premier league\b|\b(?:efl )?championship\b|\bfa cup\b/i, country: "England" },
+  { pattern: /\b(?:la ?liga|primera division)\b/i, country: "Spain" },
+  { pattern: /\bbundesliga\b/i, country: "Germany" },
+  { pattern: /\bbrazilian serie a\b|\bbrasileirao\b|\bcampeonato brasileiro\b/i, country: "Brazil" },
+  { pattern: /\bserie a\b/i, country: "Italy" },
+  { pattern: /\bligue 1\b/i, country: "France" },
+  { pattern: /\beredivisie\b/i, country: "Netherlands" },
+  { pattern: /\bprimeira liga\b|\bportuguese league\b/i, country: "Portugal" },
+  { pattern: /\bturkish super lig\b|\bsuper lig\b/i, country: "Türkiye" },
+  { pattern: /\bscottish premiership\b/i, country: "Scotland" },
+  { pattern: /\bmajor league soccer\b|\bmls\b/i, country: "United States" },
+  { pattern: /\bsaudi pro league\b/i, country: "Saudi Arabia" },
+  { pattern: /\bargentina primera\b/i, country: "Argentina" },
+  { pattern: /\b(?:champions|europa|conference) league\b/i, country: "Europe" }
+];
+
+function getLeagueCountry(league, providerCountry) {
+  const normalizedLeague = String(league || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  const knownCountry = leagueCountryRules.find(rule => rule.pattern.test(normalizedLeague))?.country;
+  return knownCountry || String(providerCountry || "").trim();
+}
+
 function normalizeFixture(event) {
   const homeName = event.homeTeamName || event.homeTeam?.name || "";
   const awayName = event.awayTeamName || event.awayTeam?.name || "";
@@ -90,7 +113,7 @@ function normalizeFixture(event) {
     source: "goal-api",
     date: kickoff,
     league,
-    country: event.countryName || event.league?.country?.name || "",
+    country: getLeagueCountry(league, event.countryName || event.league?.country?.name),
     badge: league.slice(0, 3).toUpperCase(),
     time: status === "live" && elapsed !== undefined && elapsed !== null
       ? `${elapsed}'`
