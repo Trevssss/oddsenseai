@@ -10,6 +10,7 @@ let availableSports = ["football"];
 const state = {
   sport: "all",
   status: "all",
+  country: "all",
   selectedMarkets: new Map(),
   slip: [],
   bookmaker: "SportyBet",
@@ -91,6 +92,22 @@ function renderSportTabs() {
     (state.sportsError ? `<span class="sports-error" role="status">${escapeHtml(state.sportsError)}</span>` : "");
 }
 
+function renderCountryTabs() {
+  const nav = document.querySelector("#countryNav");
+  const countries = [...new Set([
+    "England",
+    ...activeFixtures.map(fixture => String(fixture.country || "").trim()).filter(Boolean),
+    ...(state.country !== "all" ? [state.country] : [])
+  ])].sort((a, b) => a === "England" ? -1 : b === "England" ? 1 : a.localeCompare(b));
+  const options = [{ id: "all", label: "All countries" }, ...countries.map(country => ({ id: country, label: country }))];
+  nav.innerHTML = options.map(option => `<button class="country-tab ${state.country === option.id ? "active" : ""}" type="button" data-country="${escapeHtml(option.id)}" aria-pressed="${state.country === option.id}">${escapeHtml(option.label)}</button>`).join("");
+}
+
+function filterFixturesByCountry(fixtures) {
+  if (state.country === "all") return fixtures;
+  return fixtures.filter(fixture => String(fixture.country || "").trim().toLowerCase() === state.country.toLowerCase());
+}
+
 async function loadAvailableSports() {
   if (window.location.protocol === "file:") return;
   const response = await fetch("/api/sports", { headers: { Accept: "application/json" } });
@@ -128,7 +145,12 @@ function formatFixtureDate(value) {
   if (!value) return "";
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC"
+  }).format(date);
 }
 
 function teamMarkup(team, score) {
@@ -282,10 +304,10 @@ async function loadProviderFixtures(dateFrom, daysAhead = state.daysAhead, prese
 
 function renderFixtures() {
   renderSportTabs();
-  let visible = activeFixtures.filter(fixture =>
-    (state.sport === "all" || fixture.sport === state.sport) &&
-    (state.status === "all" || fixture.status === state.status)
-  );
+  renderCountryTabs();
+  const countryFixtures = filterFixturesByCountry(activeFixtures);
+  const sportFixtures = countryFixtures.filter(fixture => state.sport === "all" || fixture.sport === state.sport);
+  let visible = sportFixtures.filter(fixture => state.status === "all" || fixture.status === state.status);
   visible = [...visible].sort((a, b) => {
     const leaguePriority = getLeaguePriority(a) - getLeaguePriority(b);
     if (leaguePriority) return leaguePriority;
@@ -347,15 +369,15 @@ function renderFixtures() {
       <div class="card-bottom"><span class="market-note">✦ Match insight: <strong>${escapeHtml(fixture.note || (recommendation ? `${recommendationLabel(fixture)}: ${recommendation.label}` : "Open analyst for match statistics"))}</strong></span><div class="card-actions"><button type="button" class="ask-button" data-action="analyse">✦ Ask OddSense AI</button><button type="button" class="add-button" data-action="add" ${selected ? "" : "disabled"}><span>＋</span> Add to Slip</button></div></div>
     </article>`;
     }).join("");
-  const liveCount = activeFixtures.filter(fixture => fixture.status === "live").length;
-  const upcomingCount = activeFixtures.filter(fixture => fixture.status === "upcoming").length;
+  const liveCount = sportFixtures.filter(fixture => fixture.status === "live").length;
+  const upcomingCount = sportFixtures.filter(fixture => fixture.status === "upcoming").length;
   const feedAvailable = document.querySelector("#providerStatus").textContent.startsWith("GOAL API");
   updateLivePill(feedAvailable, false);
-  document.querySelector("#matchCount").textContent = String(activeFixtures.length).padStart(2, "0");
+  document.querySelector("#matchCount").textContent = String(sportFixtures.length).padStart(2, "0");
   document.querySelector(".overview-card:nth-child(2) strong").textContent = String(liveCount).padStart(2, "0");
   document.querySelector(".overview-card:nth-child(2) small").textContent = liveCount ? `${liveCount} in-play fixture${liveCount === 1 ? "" : "s"}` : feedAvailable ? "No active fixtures in range" : "Live feed unavailable";
-  document.querySelector(".overview-card:first-child small").textContent = `Across ${new Set(activeFixtures.map(fixture => fixture.league).filter(Boolean)).size} competitions`;
-  const topMarket = activeFixtures.map(fixture => ({
+  document.querySelector(".overview-card:first-child small").textContent = `Across ${new Set(sportFixtures.map(fixture => fixture.league).filter(Boolean)).size} competitions`;
+  const topMarket = sportFixtures.map(fixture => ({
     fixture,
     recommendation: getRecommendation(fixture),
     confidence: fixture.recommendation?.historicalShare ?? fixture.confidence
@@ -710,6 +732,13 @@ document.querySelector(".sports-nav").addEventListener("click", event => {
     tab.classList.toggle("active", active);
     tab.setAttribute("aria-pressed", String(active));
   });
+  renderFixtures();
+});
+
+document.querySelector("#countryNav").addEventListener("click", event => {
+  const button = event.target.closest("[data-country]");
+  if (!button) return;
+  state.country = button.dataset.country;
   renderFixtures();
 });
 
