@@ -110,6 +110,9 @@ h1 span { color: #8793a7; font-weight: 400; }
 .paste-results li strong { overflow: hidden; color: #e2e8f0; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .paste-results li small { color: #8290a4; font-size: 8px; }
 .fixtures-list { display: grid; gap: 12px; }
+.fixture-day-heading { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin: 5px 2px -2px; padding: 7px 0 2px; color: #dce5f0; font-size: 12px; font-weight: 650; }
+.fixture-day-heading:after { height: 1px; flex: 1; background: rgba(148,163,184,.16); content: ""; }
+.fixture-day-heading small { flex: 0 0 auto; color: #718096; font: 8px var(--mono); letter-spacing: .04em; }
 .match-card { position: relative; overflow: hidden; border: 1px solid rgba(148, 163, 184, .12); border-radius: 10px; padding: 15px 16px 13px; background: linear-gradient(125deg, rgba(20, 29, 44, .98), rgba(17, 24, 39, .98)); transition: border-color .2s ease, transform .2s ease; }
 .match-card:hover { border-color: rgba(16, 185, 129, .32); transform: translateY(-1px); }
 .match-card.live-card:before { position: absolute; inset: 0 auto 0 0; width: 2px; content: ""; background: linear-gradient(180deg, #fb7185, rgba(251, 113, 133, .08)); }

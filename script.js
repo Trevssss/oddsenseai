@@ -154,6 +154,44 @@ function formatFixtureDate(value) {
   }).format(date);
 }
 
+function getFixtureDateKey(value) {
+  const rawDate = String(value || "").trim();
+  const dateOnly = rawDate.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (dateOnly) return dateOnly[1];
+  const date = new Date(rawDate);
+  return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : "";
+}
+
+function formatFixtureDayHeading(dateKey) {
+  if (!dateKey) return "Date not provided by the data feed";
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime())) return "Date not provided by the data feed";
+  const label = new Intl.DateTimeFormat("en", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC"
+  }).format(date);
+  const today = new Date().toISOString().slice(0, 10);
+  if (dateKey === today) return `Today · ${label}`;
+  if (dateKey === addIsoDays(today, 1)) return `Tomorrow · ${label}`;
+  return label;
+}
+
+function sortFixturesByDate(fixtures, ascending = true) {
+  return [...fixtures].sort((a, b) => {
+    const dateA = getFixtureDateKey(a.date || a.startTime);
+    const dateB = getFixtureDateKey(b.date || b.startTime);
+    if (dateA !== dateB) {
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      return ascending ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+    }
+    return getLeaguePriority(a) - getLeaguePriority(b);
+  });
+}
+
 function teamMarkup(team, score) {
   const shortName = team.short || team.name.split(/\s+/).map(part => part[0]).join("").slice(0, 3).toUpperCase();
   const logo = typeof team.logo === "string" && /^https?:\/\//i.test(team.logo) ? team.logo : "";
@@ -310,16 +348,20 @@ function renderFixtures() {
   const countryFixtures = filterFixturesByCountry(activeFixtures);
   const sportFixtures = countryFixtures.filter(fixture => state.sport === "all" || fixture.sport === state.sport);
   let visible = sportFixtures.filter(fixture => state.status === "all" || fixture.status === state.status);
-  visible = [...visible].sort((a, b) => {
-    const leaguePriority = getLeaguePriority(a) - getLeaguePriority(b);
-    if (leaguePriority) return leaguePriority;
-    const dateA = new Date(a.date || a.startTime || 0).getTime();
-    const dateB = new Date(b.date || b.startTime || 0).getTime();
-    return state.sortAscending ? dateA - dateB : dateB - dateA;
+  visible = sortFixturesByDate(visible, state.sortAscending);
+  const fixtureCountsByDay = new Map();
+  visible.forEach(fixture => {
+    const dateKey = getFixtureDateKey(fixture.date || fixture.startTime);
+    fixtureCountsByDay.set(dateKey, (fixtureCountsByDay.get(dateKey) || 0) + 1);
   });
   fixturesList.innerHTML = visible.length === 0
     ? `<div class="no-fixtures">${escapeHtml(state.fixtureMessage || "No senior fixtures from the prioritized leagues match the selected country and date range.")}</div>`
-    : visible.map(fixture => {
+    : visible.map((fixture, index) => {
+    const dateKey = getFixtureDateKey(fixture.date || fixture.startTime);
+    const previousDateKey = index ? getFixtureDateKey(visible[index - 1].date || visible[index - 1].startTime) : null;
+    const dayHeading = dateKey !== previousDateKey
+      ? `<h3 class="fixture-day-heading"><span>${escapeHtml(formatFixtureDayHeading(dateKey))}</span><small>${fixtureCountsByDay.get(dateKey)} match${fixtureCountsByDay.get(dateKey) === 1 ? "" : "es"}</small></h3>`
+      : "";
     const markets = marketsFor(fixture);
     const selected = state.selectedMarkets.get(fixture.id) || null;
     const recommendation = getRecommendation(fixture);
@@ -330,7 +372,7 @@ function renderFixtures() {
     const selectionWon = Boolean(hasUserPick && verified && selected && isResultMarket(selected) && resultKeys.includes(selected.key));
     const modelDisagrees = Boolean(!verified && hasUserPick && recommendation && selected?.key !== recommendation.key);
     const isLive = fixture.status === "live";
-    const fixtureDate = formatFixtureDate(fixture.date);
+    const fixtureDate = formatFixtureDate(fixture.date || fixture.startTime);
     const timeLabel = fixture.time || "Scheduled";
     const statusText = isLive ? `LIVE ${timeLabel}` : fixture.status === "finished" ? "FINAL" : `${fixtureDate ? `${fixtureDate} · ` : ""}${timeLabel}`;
     const historicalShare = fixture.recommendation?.historicalShare;
@@ -339,7 +381,7 @@ function renderFixtures() {
     const probabilityLabel = fixture.recommendation?.type === "statistical-lean"
       ? "HISTORICAL SIGNAL · NOT PROBABILITY"
       : "STATISTICAL LEAN";
-    return `<article class="match-card ${isLive ? "live-card" : ""}" data-fixture-id="${escapeHtml(fixture.id)}">
+    return `${dayHeading}<article class="match-card ${isLive ? "live-card" : ""}" data-fixture-id="${escapeHtml(fixture.id)}">
       <div class="match-topline">
         <div class="league-info"><span class="league-badge">${escapeHtml(fixture.badge || fixture.sport.slice(0, 3).toUpperCase())}</span><span>${escapeHtml(fixture.league || getSportLabel(fixture.sport))}</span><span class="league-country">· ${escapeHtml(fixture.country || "")}</span></div>
         <span class="match-state ${isLive ? "live" : verified ? "finished" : ""}">${escapeHtml(statusText)}</span>
