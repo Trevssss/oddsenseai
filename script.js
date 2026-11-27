@@ -18,6 +18,7 @@ const state = {
   userSelectedFixtures: new Set(),
   dateFrom: "",
   daysAhead: 1,
+  pendingPasteSearch: null,
   fixtureMessage: "Connecting to the configured sports feed…",
   sportsError: ""
 };
@@ -180,7 +181,7 @@ function updateDateLabel() {
     : `${format(state.dateFrom)} – ${format(endDate)}`;
 }
 
-async function loadProviderFixtures(dateFrom, daysAhead = state.daysAhead) {
+async function loadProviderFixtures(dateFrom, daysAhead = state.daysAhead, preserveOnError = false) {
   const requestSequence = ++fixtureRequestSequence;
   if (window.location.protocol === "file:") {
     if (requestSequence !== fixtureRequestSequence) return;
@@ -237,9 +238,23 @@ async function loadProviderFixtures(dateFrom, daysAhead = state.daysAhead) {
     renderFixtures();
     renderSlip();
     document.querySelector("#bookingResult").hidden = true;
+    if (state.pendingPasteSearch) {
+      const pendingSearch = state.pendingPasteSearch;
+      state.pendingPasteSearch = null;
+      renderPastedResults(findPastedFixtures(pendingSearch.query), pendingSearch.query);
+    }
     if (removedSelections) showToast(`${removedSelections} stale slip selection${removedSelections === 1 ? "" : "s"} removed.`);
   } catch (error) {
     if (requestSequence !== fixtureRequestSequence) return;
+    if (preserveOnError && state.pendingPasteSearch) {
+      const pendingSearch = state.pendingPasteSearch;
+      state.pendingPasteSearch = null;
+      setDateRange(pendingSearch.previousDaysAhead);
+      const results = document.querySelector("#pasteResults");
+      results.innerHTML = `<p>Could not search the next 14 days: ${escapeHtml(error.message)}</p>`;
+      results.hidden = false;
+      return;
+    }
     const removedSelections = state.slip.length;
     activeFixtures = [];
     state.slip = [];
@@ -255,6 +270,12 @@ async function loadProviderFixtures(dateFrom, daysAhead = state.daysAhead) {
     renderFixtures();
     renderSlip();
     document.querySelector("#bookingResult").hidden = true;
+    if (state.pendingPasteSearch) {
+      state.pendingPasteSearch = null;
+      const results = document.querySelector("#pasteResults");
+      results.innerHTML = `<p>${escapeHtml(state.fixtureMessage)}</p>`;
+      results.hidden = false;
+    }
     if (removedSelections) showToast("Slip cleared because live fixture data could not be verified.");
   }
 }
@@ -266,11 +287,12 @@ function renderFixtures() {
     (state.status === "all" || fixture.status === state.status)
   );
   visible = [...visible].sort((a, b) => {
+    const leaguePriority = getLeaguePriority(a) - getLeaguePriority(b);
+    if (leaguePriority) return leaguePriority;
     const dateA = new Date(a.date || a.startTime || 0).getTime();
     const dateB = new Date(b.date || b.startTime || 0).getTime();
-    return dateA - dateB;
+    return state.sortAscending ? dateA - dateB : dateB - dateA;
   });
-  if (!state.sortAscending) visible.reverse();
   fixturesList.innerHTML = visible.length === 0
     ? `<div class="no-fixtures">${escapeHtml(state.fixtureMessage || "No fixtures match the selected sport and date range.")}</div>`
     : visible.map(fixture => {
@@ -351,6 +373,38 @@ function renderFixtures() {
   document.querySelector(".match-total").textContent = `${String(visible.length).padStart(2, "0")} MATCHES`;
 }
 
+const popularLeaguePatterns = [
+  /\bpremier league\b/i,
+  /\bchampions league\b/i,
+  /\b(?:la ?liga|primera division)\b/i,
+  /\bbundesliga\b/i,
+  /\bserie a\b/i,
+  /\bligue 1\b/i,
+  /\beuropa league\b/i,
+  /\bconference league\b/i,
+  /\b(?:efl )?championship\b/i,
+  /\bfa cup\b/i,
+  /\beredivisie\b/i,
+  /\b(?:major league soccer|mls)\b/i,
+  /\bsaudi pro league\b/i
+];
+
+function getLeaguePriority(fixture) {
+  const league = String(fixture.league || "");
+  const priority = popularLeaguePatterns.findIndex(pattern => pattern.test(league));
+  return priority === -1 ? popularLeaguePatterns.length : priority;
+}
+
+function sortFixturesByPopularity(fixtures) {
+  return [...fixtures].sort((a, b) => {
+    const leaguePriority = getLeaguePriority(a) - getLeaguePriority(b);
+    if (leaguePriority) return leaguePriority;
+    const dateA = new Date(a.date || a.startTime || 0).getTime();
+    const dateB = new Date(b.date || b.startTime || 0).getTime();
+    return dateA - dateB;
+  });
+}
+
 function normalizePastedText(value) {
   return String(value)
     .normalize("NFKD")
@@ -359,17 +413,27 @@ function normalizePastedText(value) {
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, " ")
+    .replace(/\bman city\b/g, "manchester city")
+    .replace(/\bman utd\b/g, "manchester united")
+    .replace(/\bman united\b/g, "manchester united")
+    .replace(/\bspurs\b/g, "tottenham hotspur")
+    .replace(/\bpsg\b/g, "paris saint germain");
 }
 
 function findPastedFixtures(value) {
   const pastedText = ` ${normalizePastedText(value)} `;
   if (!pastedText.trim()) return [];
-  return activeFixtures.filter(fixture => {
+  return sortFixturesByPopularity(activeFixtures.filter(fixture => {
     const home = normalizePastedText(fixture.home.name);
     const away = normalizePastedText(fixture.away.name);
     return home && away && pastedText.includes(` ${home} `) && pastedText.includes(` ${away} `);
-  });
+  }));
+}
+
+function isBookingReferenceText(pastedText, normalized = normalizePastedText(pastedText)) {
+  return /\b(?:booking|reference|bet\s*slip)\s*(?:code)?\b/i.test(pastedText) ||
+    (/\d/.test(normalized) && /^[a-z0-9]{5,20}$/.test(normalized.replace(/\s/g, "")));
 }
 
 function renderPastedResults(fixtures, pastedText) {
@@ -380,15 +444,43 @@ function renderPastedResults(fixtures, pastedText) {
   } else if (fixtures.length) {
     results.innerHTML = `<p class="paste-result-summary">Found ${fixtures.length} fixture${fixtures.length === 1 ? "" : "s"} in the selected date range:</p>
       <ul>${fixtures.map(fixture => `<li><span><strong>${escapeHtml(fixtureDisplayName(fixture))}</strong><small>${escapeHtml(fixture.league)} · ${escapeHtml(fixture.time || fixture.status)}</small></span><button type="button" data-paste-analyse="${escapeHtml(fixture.id)}">Open stats analysis</button></li>`).join("")}</ul>`;
-  } else if (/\b(?:booking|reference|bet\s*slip)\s*(?:code)?\b/i.test(pastedText) ||
-      (/\d/.test(normalized) && /^[a-z0-9]{5,20}$/.test(normalized.replace(/\s/g, "")))) {
+  } else if (isBookingReferenceText(pastedText, normalized)) {
     results.innerHTML = "<p>This looks like a booking/reference code. OddSense can’t decode bookmaker codes. Paste the readable game names or selections shown on the slip instead.</p>";
   } else if (!activeFixtures.length) {
     results.innerHTML = "<p>No live fixtures are loaded yet. Wait for the feed to finish loading, then try again.</p>";
   } else {
-    results.innerHTML = "<p>No exact team-name match in the currently loaded fixtures. Check the names and selected date range, then try again.</p>";
+    results.innerHTML = "<p>No matching fixture was found in the selected 14-day range. Check the team names and date, or confirm the match is listed by GOAL API. Popular leagues are shown first; other listed leagues are included too.</p>";
   }
   results.hidden = false;
+}
+
+function searchPastedGames() {
+  const pastedText = document.querySelector("#gamePasteInput").value;
+  const matches = findPastedFixtures(pastedText);
+  const normalized = normalizePastedText(pastedText);
+  if (!normalized || matches.length || isBookingReferenceText(pastedText, normalized) ||
+      !activeFixtures.length || state.daysAhead >= 14) {
+    renderPastedResults(matches, pastedText);
+    return;
+  }
+
+  const previousDaysAhead = state.daysAhead;
+  setDateRange(14);
+  state.pendingPasteSearch = { query: pastedText.trim(), previousDaysAhead };
+  const results = document.querySelector("#pasteResults");
+  results.innerHTML = "<p>Searching the live fixture feed for up to 14 days, with popular leagues first…</p>";
+  results.hidden = false;
+  loadProviderFixtures(state.dateFrom, state.daysAhead, true);
+}
+
+function setDateRange(days) {
+  state.daysAhead = days;
+  document.querySelectorAll(".date-range-tabs button").forEach(tab => {
+    const active = Number(tab.dataset.days) === days;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-pressed", String(active));
+  });
+  updateDateLabel();
 }
 
 function renderSlip() {
@@ -660,16 +752,15 @@ fixturesList.addEventListener("click", event => {
   }
 });
 
-document.querySelector("#findPastedGames").addEventListener("click", () => {
-  const pastedText = document.querySelector("#gamePasteInput").value;
-  renderPastedResults(findPastedFixtures(pastedText), pastedText);
-});
+document.querySelector("#findPastedGames").addEventListener("click", searchPastedGames);
 
 document.querySelector("#pasteResults").addEventListener("click", event => {
   const button = event.target.closest("[data-paste-analyse]");
-  if (!button) return;
-  const fixture = getFixture(button.dataset.pasteAnalyse);
-  if (fixture) openAnalyst(fixture);
+  if (button) {
+    const fixture = getFixture(button.dataset.pasteAnalyse);
+    if (fixture) openAnalyst(fixture);
+    return;
+  }
 });
 
 slipSelections.addEventListener("click", event => {
@@ -792,6 +883,7 @@ function localDateValue(date = new Date()) {
 
 document.querySelector("#dateInput").addEventListener("change", event => {
   if (!event.target.value) return;
+  state.pendingPasteSearch = null;
   state.dateFrom = event.target.value;
   updateDateLabel();
   loadProviderFixtures(state.dateFrom, state.daysAhead);
@@ -800,13 +892,8 @@ document.querySelector("#dateInput").addEventListener("change", event => {
 document.querySelector(".date-range-tabs").addEventListener("click", event => {
   const button = event.target.closest("[data-days]");
   if (!button) return;
-  state.daysAhead = Number(button.dataset.days);
-  document.querySelectorAll(".date-range-tabs button").forEach(tab => {
-    const active = tab === button;
-    tab.classList.toggle("active", active);
-    tab.setAttribute("aria-pressed", String(active));
-  });
-  updateDateLabel();
+  state.pendingPasteSearch = null;
+  setDateRange(Number(button.dataset.days));
   loadProviderFixtures(state.dateFrom, state.daysAhead);
 });
 
