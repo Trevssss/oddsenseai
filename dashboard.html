@@ -91,6 +91,20 @@
             <button type="button" class="icon-button sort-button" id="sortButton" aria-label="Sort matches">☷</button>
           </div>
         </div>
+        <section class="quick-paste" aria-labelledby="pasteTitle">
+          <div class="quick-paste-heading">
+            <div><p class="eyebrow"><span class="eyebrow-line"></span> QUICK MATCH LOOKUP</p><h3 id="pasteTitle">Paste games to analyze</h3></div>
+            <span class="paste-mark">LIVE FIXTURE MATCH</span>
+          </div>
+          <label class="sr-only" for="gamePasteInput">Paste match names or readable fixture text</label>
+          <textarea id="gamePasteInput" rows="3" placeholder="Paste match names or fixture text, for example: Arsenal vs Chelsea&#10;You can paste multiple games."></textarea>
+          <div class="paste-actions">
+            <p>We’ll match team names to fixtures in the selected date range, then use available match statistics. No pick is guaranteed.</p>
+            <button type="button" id="findPastedGames">Find games <span>→</span></button>
+          </div>
+          <div class="paste-results" id="pasteResults" role="status" aria-live="polite" hidden></div>
+          <p class="paste-code-note">Booking codes from SportyBet, Bet9ja, and MSport are private to each bookmaker and can’t be decoded here. Paste readable game names or selections instead.</p>
+        </section>
         <div class="fixtures-list" id="fixturesList" aria-live="polite"></div>
         <button class="load-more" type="button" id="loadMoreButton">Refresh selected date range <span>↻</span></button>
         <aside class="responsible-note"><span>ⓘ</span><p><strong>Play responsibly.</strong> Odds and predictions are for informational purposes only. Betting involves risk; only wager what you can afford to lose.</p><a href="#responsible">Learn more</a></aside>

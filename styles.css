@@ -86,6 +86,27 @@ h1 span { color: #8793a7; font-weight: 400; }
 .feed-toggle [data-status="live"] i { width: 5px; height: 5px; box-shadow: none; }
 .icon-button { width: 33px; height: 33px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: #92a0b4; cursor: pointer; }
 .sort-button { font-size: 17px; }
+.quick-paste { margin: 0 0 14px; border: 1px solid rgba(148,163,184,.13); border-radius: 9px; padding: 14px; background: linear-gradient(125deg, rgba(20,29,44,.85), rgba(17,24,39,.85)); }
+.quick-paste-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.quick-paste-heading .eyebrow { margin: 0 0 4px; }
+.quick-paste-heading h3 { margin: 0; font-size: 13px; font-weight: 650; }
+.paste-mark { color: #6ee7b7; font: 8px var(--mono); letter-spacing: .06em; }
+.quick-paste textarea { width: 100%; min-height: 67px; resize: vertical; border: 1px solid rgba(148,163,184,.16); border-radius: 6px; padding: 9px 10px; background: rgba(8,13,22,.55); color: var(--text); font-size: 10px; line-height: 1.5; }
+.quick-paste textarea::placeholder { color: #68758a; }
+.paste-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.paste-actions p, .paste-code-note { margin: 0; color: #8290a4; font-size: 9px; line-height: 1.5; }
+.paste-actions button, .paste-results li button { flex: 0 0 auto; border: 1px solid rgba(16,185,129,.35); border-radius: 5px; padding: 7px 10px; background: rgba(16,185,129,.1); color: #a7f3d0; font-size: 9px; font-weight: 650; cursor: pointer; }
+.paste-actions button:hover, .paste-results li button:hover { background: rgba(16,185,129,.18); }
+.paste-actions button span { margin-left: 5px; }
+.paste-code-note { margin-top: 9px; color: #768398; }
+.paste-results { margin-top: 10px; border-top: 1px solid rgba(148,163,184,.1); padding-top: 9px; color: #b6c2d2; font-size: 10px; line-height: 1.5; }
+.paste-results p { margin: 0; }
+.paste-results .paste-result-summary { margin-bottom: 6px; color: #a7f3d0; }
+.paste-results ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.paste-results li { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-radius: 5px; padding: 7px 8px; background: rgba(8,13,22,.45); }
+.paste-results li span { min-width: 0; display: grid; gap: 2px; }
+.paste-results li strong { overflow: hidden; color: #e2e8f0; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.paste-results li small { color: #8290a4; font-size: 8px; }
 .fixtures-list { display: grid; gap: 12px; }
 .match-card { position: relative; overflow: hidden; border: 1px solid rgba(148, 163, 184, .12); border-radius: 10px; padding: 15px 16px 13px; background: linear-gradient(125deg, rgba(20, 29, 44, .98), rgba(17, 24, 39, .98)); transition: border-color .2s ease, transform .2s ease; }
 .match-card:hover { border-color: rgba(16, 185, 129, .32); transform: translateY(-1px); }
@@ -328,6 +349,11 @@ h1 span { color: #8793a7; font-weight: 400; }
   .section-header { align-items: flex-start; flex-direction: column; margin-bottom: 11px; }
   .section-header h2 { font-size: 18px; }
   .feed-tools { width: 100%; justify-content: space-between; }
+  .quick-paste { padding: 11px; }
+  .paste-actions { align-items: flex-start; }
+  .paste-actions button { padding: 8px; }
+  .paste-results li { align-items: flex-start; flex-direction: column; }
+  .paste-results li button { width: 100%; }
   .feed-toggle { flex: 1; }
   .status-tab { flex: 1; justify-content: center; padding: 7px 4px; }
   .match-card { padding: 12px 11px 11px; }

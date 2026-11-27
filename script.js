@@ -351,6 +351,46 @@ function renderFixtures() {
   document.querySelector(".match-total").textContent = `${String(visible.length).padStart(2, "0")} MATCHES`;
 }
 
+function normalizePastedText(value) {
+  return String(value)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function findPastedFixtures(value) {
+  const pastedText = ` ${normalizePastedText(value)} `;
+  if (!pastedText.trim()) return [];
+  return activeFixtures.filter(fixture => {
+    const home = normalizePastedText(fixture.home.name);
+    const away = normalizePastedText(fixture.away.name);
+    return home && away && pastedText.includes(` ${home} `) && pastedText.includes(` ${away} `);
+  });
+}
+
+function renderPastedResults(fixtures, pastedText) {
+  const results = document.querySelector("#pasteResults");
+  const normalized = normalizePastedText(pastedText);
+  if (!normalized) {
+    results.innerHTML = "<p>Paste one or more match names first.</p>";
+  } else if (fixtures.length) {
+    results.innerHTML = `<p class="paste-result-summary">Found ${fixtures.length} fixture${fixtures.length === 1 ? "" : "s"} in the selected date range:</p>
+      <ul>${fixtures.map(fixture => `<li><span><strong>${escapeHtml(fixtureDisplayName(fixture))}</strong><small>${escapeHtml(fixture.league)} · ${escapeHtml(fixture.time || fixture.status)}</small></span><button type="button" data-paste-analyse="${escapeHtml(fixture.id)}">Open stats analysis</button></li>`).join("")}</ul>`;
+  } else if (/\b(?:booking|reference|bet\s*slip)\s*(?:code)?\b/i.test(pastedText) ||
+      (/\d/.test(normalized) && /^[a-z0-9]{5,20}$/.test(normalized.replace(/\s/g, "")))) {
+    results.innerHTML = "<p>This looks like a booking/reference code. OddSense can’t decode bookmaker codes. Paste the readable game names or selections shown on the slip instead.</p>";
+  } else if (!activeFixtures.length) {
+    results.innerHTML = "<p>No live fixtures are loaded yet. Wait for the feed to finish loading, then try again.</p>";
+  } else {
+    results.innerHTML = "<p>No exact team-name match in the currently loaded fixtures. Check the names and selected date range, then try again.</p>";
+  }
+  results.hidden = false;
+}
+
 function renderSlip() {
   const count = state.slip.length;
   document.querySelector("#slipCount").textContent = count;
@@ -618,6 +658,18 @@ fixturesList.addEventListener("click", event => {
     state.userSelectedFixtures.add(fixture.id);
     renderFixtures();
   }
+});
+
+document.querySelector("#findPastedGames").addEventListener("click", () => {
+  const pastedText = document.querySelector("#gamePasteInput").value;
+  renderPastedResults(findPastedFixtures(pastedText), pastedText);
+});
+
+document.querySelector("#pasteResults").addEventListener("click", event => {
+  const button = event.target.closest("[data-paste-analyse]");
+  if (!button) return;
+  const fixture = getFixture(button.dataset.pasteAnalyse);
+  if (fixture) openAnalyst(fixture);
 });
 
 slipSelections.addEventListener("click", event => {

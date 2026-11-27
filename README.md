@@ -23,6 +23,8 @@ GOAL API is a football (soccer) provider. The dashboard supports date ranges of 
 
 The dashboard offers Home Win, Draw, and Away Win selections without requiring bookmaker odds. Users choose their outcome, add it to a manual-entry betslip, and enter a stake. Total odds and payout are deliberately left to the betting app; OddSense does not invent booking codes or submit wagers.
 
+The dashboard's **Paste games to analyze** box matches pasted team names against fixtures in the currently selected date range. For a match it finds, open the stats analysis to review provider-backed information and any available historical lean. The feature cannot decode SportyBet, Bet9ja, or MSport booking/reference codes; paste readable fixture names or selections instead. Exact team names from the live feed are required.
+
 Open **Ask OddSense AI** on a match to request GOAL API current-season team statistics, recent form, head-to-head results, and lineup/availability data. This can make up to four provider requests per match analysis; successful responses are cached by the local server for five minutes. These are provider-backed statistical summaries, not a guaranteed or calibrated prediction. A directional lean is produced only when both teams have adequate home/away samples and the strongest historical signal is separated from the alternatives; otherwise the analyst says there is no clear pick. Team stats, head-to-head, and lineups can be unavailable for some competitions or plans; per-source errors are shown rather than replaced with invented data.
 
 A selected outcome is marked as won or lost only after GOAL API returns a final fixture result.
